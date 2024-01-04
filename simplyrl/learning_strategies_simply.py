@@ -39,10 +39,10 @@ class SimplyRLStrategy(RLStrategy):
         self.max_bid_price = kwargs.get("max_bid_price", 100)
         self.max_demand = kwargs.get("max_demand", 10e3)
 
-        # tells us whether we are training the agents or just executing per-learnind stategies
+        # tells us whether we are training the agents or just executing per-learned strategies
         self.learning_mode = kwargs.get("learning_mode", False)
 
-        # sets the devide of the actor network
+        # sets the device of the actor network
         device = kwargs.get("device", "cpu")
         self.device = th.device(device if th.cuda.is_available() else "cpu")
         if not self.learning_mode:
@@ -163,11 +163,11 @@ class SimplyRLStrategy(RLStrategy):
         current_volume = unit.get_output_before(start)
         current_costs = unit.calc_marginal_cost_with_partial_eff(current_volume, start)
 
-        # scale unit outpus
+        # scale unit outputs
         scaled_total_capacity = current_volume / scaling_factor_total_capacity
         scaled_marginal_cost = current_costs / scaling_factor_marginal_cost
 
-        # concat all obsverations into one array
+        # concat all observations into one array
         observation = np.concatenate(
             [
                 scaled_res_load_forecast,
@@ -286,17 +286,12 @@ class SimplyRLStrategy(RLStrategy):
         # =============================================================================
         # actions are in the range [0,1], we need to transform them into actual bids
         # we can use our domain knowledge to guide the bid formulation
-        bid_prices = actions * self.max_bid_price
 
-        # 3.1.1 formulate the bids for Pmin
-        # Pmin, the minium run capacity is the inflexible part of the bid, which should always be accepted
-        bid_quantity_inflex = min_power
-        bid_price_inflex = min(bid_prices)
+        # 3.1.1 formulate the bid price from the first action value
+        bid_price = actions[0] * self.max_bid_price
 
-        # 3.1.2 formulate the bids for Pmax - Pmin
-        # Pmin, the minium run capacity is the inflexible part of the bid, which should always be accepted
-        bid_quantity_flex = max_power - bid_quantity_inflex
-        bid_price_flex = max(bid_prices)
+        # 3.1.2 formulate the bid quantity from the second action value
+        bid_quantity = float(actions[1]) * max_power
 
         # actually formulate bids in orderbook format
         bids = [
@@ -304,15 +299,8 @@ class SimplyRLStrategy(RLStrategy):
                 "start_time": start,
                 "end_time": end,
                 "only_hours": None,
-                "price": bid_price_inflex,
-                "volume": bid_quantity_inflex,
-            },
-            {
-                "start_time": start,
-                "end_time": end,
-                "only_hours": None,
-                "price": bid_price_flex,
-                "volume": bid_quantity_flex,
+                "price": bid_price,
+                "volume": bid_quantity
             },
         ]
 
