@@ -25,26 +25,43 @@ def create_scenario_rl(path):
 
     # Create the units data
     powerplant_units_data = {
-        "name": ["Unit 1", "Unit 2", "Unit 3", "Unit 4"],
-        "technology": ["pv", "lignite", "hard coal", "combined cycle gas turbine"],
-        "bidding_energy": ["prosumer_learning", "naive", "naive", "naive"],
-        "fuel_type": ["pv", "lignite", "hard coal", "natural gas"],
-        "emission_factor": [0.0, 0.4, 0.3, 0.2],
-        "max_power": [15.0, 1000.0, 1000.0, 1000.0],
-        "min_power": [0.0, 200.0, 200.0, 200.0],
-        "efficiency": [0.3, 0.5, 0.4, 0.6],
-        "fixed_cost": [0.3, 1.65, 1.3, 3.5],
-        "unit_operator": ["Operator 1", "Operator 2", "Operator 3", "Operator 4"],
+        "name": ["Solar", "PV Unit 2"],
+        "technology": ["Solar", "Solar"],
+        "bidding_energy": ["naive", "naive"],  # prosumer_learning
+        "fuel_type": ["renewable", "renewable"],
+        "emission_factor": [0.0, 0.0],
+        "max_power": [15.0, 30.0],
+        "min_power": [0.0, 0.0],
+        "efficiency": [1, 1],
+        "fixed_cost": [0, 0],
+        "unit_operator": ["Prosumer 1", "Prosumer 2"],
     }
 
     # Convert to DataFrame and save as CSV
     powerplant_units_df = pd.DataFrame(powerplant_units_data)
     powerplant_units_df.to_csv(f"{path}/powerplant_units.csv", index=False)
 
+    # Create storage units
+    storage_units_data = {
+        "name": ["Battery Unit 1", "Battery Unit 2"],
+        "technology": ["li-ion-battery", "li-ion-battery"],
+        "bidding_energy": ["flexable_eom_storage", "flexable_eom_storage"],
+        "max_volume": [15, 24],
+        "max_power_charge": [2, 2],
+        "max_power_discharge": [-2, -2],
+        "efficiency": [1, 1],
+        "fixed_cost": [0, 0],
+        "unit_operator": ["Prosumer 1", "Prosumer 2"],
+    }
+
+    # Convert to DataFrame and save as CSV
+    storage_units_df = pd.DataFrame(storage_units_data)
+    storage_units_df.to_csv(f"{path}/storage_units.csv", index=False)
+
     # Create the fuel price data
     fuel_prices_data = {
-        "fuel": ["pv", "lignite", "hard coal", "natural gas", "oil", "biomass", "co2"],
-        "price": [0, 2, 10, 25, 40, 20, 25],
+        "fuel": ["lignite", "hard coal", "natural gas", "oil", "biomass", "co2"],
+        "price": [2, 10, 25, 40, 20, 25],
     }
 
     # Convert to DataFrame and save as CSV
@@ -54,11 +71,11 @@ def create_scenario_rl(path):
     # Create the demand unit data
     demand_units_data = {
         "name": ["demand_EOM"],
-        "technology": ["inflex_demand"],
+        "technology": ["flex_demand"],
         "bidding_energy": ["naive"],
-        "max_power": [1000000],
+        "max_power": [45],
         "min_power": [0],
-        "unit_operator": ["eom_de"],
+        "unit_operator": ["Prosumer 1"],
     }
 
     # Convert to DataFrame and save as CSV
@@ -66,13 +83,16 @@ def create_scenario_rl(path):
     demand_units_df.to_csv(f"{path}/demand_units.csv", index=False)
 
     # Create a datetime index for a week with hourly resolution
-    date_range = pd.date_range(start="2021-03-01", periods=8 * 24, freq="H")
+    date_range = pd.date_range(start="2019-01-01", periods=8 * 24, freq="H")
 
     # Generate random demand values around 2000
-    demand_values = np.random.normal(loc=2000, scale=200, size=8 * 24)
+    demand_values = np.random.normal(loc=30, scale=3, size=(8 * 24, len(demand_units_data["unit_operator"])))
 
     # Create a DataFrame for the demand profile and save as CSV
-    demand_profile = pd.DataFrame({"datetime": date_range, "demand_EOM": demand_values})
+    demand_profile = pd.concat([
+        pd.DataFrame({"datetime": date_range}),
+        pd.DataFrame(demand_values, columns=demand_units_data["name"])
+    ], axis=1)
     demand_profile.to_csv(f"{path}/demand_df.csv", index=False)
 
 
@@ -81,8 +101,8 @@ def set_config(path):
     # Define the config as a dictionary
     config_data = {
         "hourly_market": {
-            "start_date": "2021-03-01 00:00",
-            "end_date": "2021-03-08 00:00",
+            "start_date": "2019-01-01 00:00",
+            "end_date": "2019-01-08 00:00",
             "time_step": "1h",
             "save_frequency_hours": None,
             "markets_config": {
@@ -133,7 +153,7 @@ def add_learning_config(path):
         data = yaml.safe_load(file)
 
     # store our modifications to the config file
-    data["hourly_market"]["learning_mode"] = True
+    data["hourly_market"]["learning_mode"] = False
     data["hourly_market"]["learning_config"] = learning_config
 
     # Write the modified data back to the file
@@ -152,12 +172,14 @@ if __name__ == "__main__":
     data_format = "local_db"  # "local_db" or "timescale"
 
     if data_format == "local_db":
-        db_uri = "sqlite:///./local_db/assume_db.db"
+        db_uri = "sqlite:///./local_db/assume_db_2.db"
     elif data_format == "timescale":
         db_uri = "postgresql://assume:assume@localhost:5432/assume"
+    elif data_format is None:
+        db_uri = None
 
     # define scenario name
-    scenario = "simplyASSUME_test"
+    scenario = "simplyASSUME_test2"
     # Define paths for input and output data
     csv_path = "./outputs_assume"
     input_path = "./inputs_assume"
