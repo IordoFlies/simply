@@ -10,7 +10,7 @@ from learning_strategies_simply import SimplyRLStrategy
 
 
 
-def create_scenario_rl(path):
+def create_scenario_rl(path, start_date, end_date):
     # Create scenario
 
     # Set up logging
@@ -23,10 +23,13 @@ def create_scenario_rl(path):
     # Set the random seed for reproducibility
     np.random.seed(0)
 
+    # Create a datetime index for a week with hourly resolution
+    date_range = pd.date_range(start=start_date, end=end_date, freq="H")
+
     # Create the units data
     powerplant_units_data = {
-        "name": ["Solar", "PV Unit 2", "DE Grid Unit"],
-        "technology": ["Solar", "Solar", "Grid"],
+        "name": ["PV Unit 1", "PV Unit 2", "DE Grid Unit"],
+        "technology": ["PV", "PV", "Grid"],
         "bidding_energy": ["naive", "naive", "naive"],  # prosumer_learning
         "fuel_type": ["renewable", "renewable", "mix"],
         "emission_factor": [0.0, 0.0, 2],
@@ -40,6 +43,18 @@ def create_scenario_rl(path):
     # Convert to DataFrame and save as CSV
     powerplant_units_df = pd.DataFrame(powerplant_units_data)
     powerplant_units_df.to_csv(f"{path}/powerplant_units.csv", index=False)
+
+    if random_availability:
+        # create random availability time series
+        # Generate random demand values between 0 and 1
+        avail_values = np.random.uniform(0, 1, size=(len(date_range), len(powerplant_units_df.query("fuel_type == 'renewable'"))))
+
+        # Create a DataFrame for the demand profile and save as CSV
+        avail_profile = pd.concat([
+            pd.DataFrame({"datetime": date_range}),
+            pd.DataFrame(avail_values, columns=powerplant_units_df.query("fuel_type == 'renewable'").name)
+        ], axis=1)
+        avail_profile.to_csv(f"{path}/availability_df.csv", index=False)
 
     # Create storage units
     storage_units_data = {
@@ -82,11 +97,8 @@ def create_scenario_rl(path):
     demand_units_df = pd.DataFrame(demand_units_data)
     demand_units_df.to_csv(f"{path}/demand_units.csv", index=False)
 
-    # Create a datetime index for a week with hourly resolution
-    date_range = pd.date_range(start="2019-01-01", periods=8 * 24, freq="H")
-
     # Generate random demand values around 2000
-    demand_values = np.random.normal(loc=30, scale=3, size=(8 * 24, len(demand_units_data["unit_operator"])))
+    demand_values = np.random.normal(loc=30, scale=3, size=(len(date_range), len(demand_units_data["unit_operator"])))
 
     # Create a DataFrame for the demand profile and save as CSV
     demand_profile = pd.concat([
@@ -96,13 +108,13 @@ def create_scenario_rl(path):
     demand_profile.to_csv(f"{path}/demand_df.csv", index=False)
 
 
-def set_config(path):
+def set_config(path, start_date, end_date):
 
     # Define the config as a dictionary
     config_data = {
         "hourly_market": {
-            "start_date": "2019-01-01 00:00",
-            "end_date": "2019-01-08 00:00",
+            "start_date": start_date,
+            "end_date": end_date,
             "time_step": "1h",
             "save_frequency_hours": None,
             "markets_config": {
@@ -186,9 +198,14 @@ if __name__ == "__main__":
     study_case = "hourly_market"
     scenario_path = f"{input_path}/{scenario}"
 
+    start_date = "2021-03-01 00:00"
+    end_date = "2021-03-08 00:00"
+
+    random_availability = True
+
     # create scenario and set configurations for ASSUME market and learning
-    create_scenario_rl(scenario_path)
-    set_config(scenario_path)
+    create_scenario_rl(scenario_path, start_date, end_date)
+    set_config(scenario_path, start_date, end_date)
     add_learning_config(scenario_path)
 
     # create world
