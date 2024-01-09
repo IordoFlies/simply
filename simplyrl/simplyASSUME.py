@@ -25,16 +25,16 @@ def create_scenario_rl(path):
 
     # Create the units data
     powerplant_units_data = {
-        "name": ["Solar", "PV Unit 2"],
-        "technology": ["Solar", "Solar"],
-        "bidding_energy": ["naive", "naive"],  # prosumer_learning
-        "fuel_type": ["renewable", "renewable"],
-        "emission_factor": [0.0, 0.0],
-        "max_power": [15.0, 30.0],
-        "min_power": [0.0, 0.0],
-        "efficiency": [1, 1],
-        "fixed_cost": [0, 0],
-        "unit_operator": ["Prosumer 1", "Prosumer 2"],
+        "name": ["Solar", "PV Unit 2", "DE Grid Unit"],
+        "technology": ["Solar", "Solar", "Grid"],
+        "bidding_energy": ["naive", "naive", "naive"],  # prosumer_learning
+        "fuel_type": ["renewable", "renewable", "mix"],
+        "emission_factor": [0.0, 0.0, 2],
+        "max_power": [15.0, 30.0, 10000.0],
+        "min_power": [0.0, 0.0, 10000.0],
+        "efficiency": [1, 1, 1],
+        "fixed_cost": [0, 0, 100],
+        "unit_operator": ["Prosumer 1", "Prosumer 2", "Market_Maker"],
     }
 
     # Convert to DataFrame and save as CSV
@@ -48,7 +48,7 @@ def create_scenario_rl(path):
         "bidding_energy": ["flexable_eom_storage", "flexable_eom_storage"],
         "max_volume": [15, 24],
         "max_power_charge": [2, 2],
-        "max_power_discharge": [-2, -2],
+        "max_power_discharge": [2, 2],
         "efficiency": [1, 1],
         "fixed_cost": [0, 0],
         "unit_operator": ["Prosumer 1", "Prosumer 2"],
@@ -60,8 +60,8 @@ def create_scenario_rl(path):
 
     # Create the fuel price data
     fuel_prices_data = {
-        "fuel": ["lignite", "hard coal", "natural gas", "oil", "biomass", "co2"],
-        "price": [2, 10, 25, 40, 20, 25],
+        "fuel": ["lignite", "hard coal", "natural gas", "oil", "biomass", "co2", "mix"],
+        "price": [2, 10, 25, 40, 20, 25, 30],
     }
 
     # Convert to DataFrame and save as CSV
