@@ -68,7 +68,7 @@ class Scenario:
      results can be reproduced.
     """
 
-    def __init__(self, network, map_actors=None, buy_prices: np.array = None, rng_seed=None,
+    def __init__(self, network, map_actors=None, buy_prices: np.array = None,sell_prices: np.array = None, rng_seed=None,
                  steps_per_hour=4, **kwargs):
 
         self.rng_seed = rng_seed if rng_seed is not None else random.getrandbits(32)
@@ -85,20 +85,27 @@ class Scenario:
             buy_prices = np.array(())
         else:
             buy_prices = np.array(buy_prices)
+
+        if sell_prices is None:
+            sell_prices = np.array(())
+        else:
+            sell_prices= np.array(sell_prices)
+
+
         self.kwargs = kwargs
         self.environment = Environment(steps_per_hour, self.add_participant, **kwargs)
-        self.add_market_maker(buy_prices, **kwargs)
+        self.add_market_maker(buy_prices,sell_prices, **kwargs)
         if "market" in kwargs.keys():
             self.set_market(kwargs["market"])
 
-    def add_market_maker(self, buy_prices: Sized, **kwargs):
+    def add_market_maker(self, buy_prices: Sized,sell_prices: Sized, **kwargs):
         if len(buy_prices) == 0:
             warnings.warn("Environment was created without a market maker since no buy_prices, "
                           "were provided.")
         else:
             # Create the Market maker. Since the environment is passed the MarketMaker automatically
             # adds itself to the environment and also to the scenario participants
-            MarketMaker(buy_prices=buy_prices, environment=self.environment, **kwargs)
+            MarketMaker(buy_prices=buy_prices,sell_prices =sell_prices, environment=self.environment, **kwargs)
 
     def get_market(self):
         return self._market

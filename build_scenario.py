@@ -27,23 +27,37 @@ convert string dates to datetime dtype, and build a pandas dataframe from the co
 
 
 # Helper functions
-def get_mm_prices(dirpath, start_date, end_date):
+def get_mm_prices(dirpath, start_date, end_date,buy_or_sell = 0):
     csv_df = pd.read_csv(dirpath, sep=',', parse_dates=['Time'], dayfirst=False,
                          index_col=['Time'])
     # Make sure dates are parsed
     csv_df.index = pd.to_datetime(csv_df.index)
-    try:
-        return list(csv_df.loc[start_date:end_date]["prices"])
-    except KeyError:
-        # is first column after time column numeric?
-        if is_numeric_dtype(csv_df.loc[start_date:end_date].iloc[:, 0]):
-            # if so, we assume that is the price column even though its not named "prices"
-            warnings.warn("Prices data file does not contain column named 'prices'. Instead the "
-                          f"first column named {csv_df.iloc[:, 0].name} is used")
-            return list(csv_df.loc[start_date:end_date].iloc[:, 0])
-        else:
-            raise Exception("Prices data file does not contain column named 'prices' and the "
-                            "second column is not numeric, which would be used otherwise.")
+    if buy_or_sell == 0:
+        try:
+            return list(csv_df.loc[start_date:end_date]["buy_prices"])
+        except KeyError:
+            # is first column after time column numeric?
+            if is_numeric_dtype(csv_df.loc[start_date:end_date].iloc[:, 0]):
+                # if so, we assume that is the price column even though its not named "prices"
+                warnings.warn("Prices data file does not contain column named 'buy_prices'. Instead the "
+                              f"first column named {csv_df.iloc[:, 0].name} is used")
+                return list(csv_df.loc[start_date:end_date].iloc[:, 0])
+            else:
+                raise Exception("Prices data file does not contain column named 'prices' and the "
+                                "second column is not numeric, which would be used otherwise.")
+    if buy_or_sell == 1:
+        try:
+            return list(csv_df.loc[start_date:end_date]["sell_prices"])
+        except KeyError:
+            # is first column after time column numeric?
+            if is_numeric_dtype(csv_df.loc[start_date:end_date].iloc[:, 0]):
+                # if so, we assume that is the price column even though its not named "prices"
+                warnings.warn("Prices data file does not contain column named 'sell_prices'. Instead the "
+                              f"first column named {csv_df.iloc[:, 0].name} is used")
+                return list(csv_df.loc[start_date:end_date].iloc[:, 0])
+            else:
+                raise Exception("Prices data file does not contain column named 'prices' and the "
+                                "second column is not numeric, which would be used otherwise.")
 
 
 def insert_market_maker_id(dirpath):
@@ -221,10 +235,11 @@ def create_scenario_from_config(config_json, network_path, loads_dir_path, data_
         start_date = "2016-01-01"
         warnings.warn(f"No start date was given, use default date {start_date}.")
     start_date, end_date = dates_to_datetime(start_date, nb_ts + 1, horizon, ts_hour)
-    buy_prices = get_mm_prices(price_path / price_filename, start_date, end_date)
+    buy_prices = get_mm_prices(price_path / price_filename, start_date, end_date,0)
+    sell_prices = get_mm_prices(price_path / price_filename, start_date, end_date,1)
     # Empty scenario. Member Participants, map actors and power network will be added later
     # When buy_prices are provided a market maker is automatically generated
-    scenario = Scenario(None, None, buy_prices=buy_prices, buy_to_sell_function=buy_sell_function)
+    scenario = Scenario(None, None, buy_prices=buy_prices,sell_prices=sell_prices, buy_to_sell_function=buy_sell_function)
     for i, actor_row in config_df.iterrows():
         file_dict = {}
         asset_dict = {}
